@@ -8,9 +8,19 @@ const DISPLAY_SCALE = 0.4;
 const DISPLAY_W = Math.round(CANVAS_W * DISPLAY_SCALE);
 const DISPLAY_H = Math.round(CANVAS_H * DISPLAY_SCALE);
 
+function distance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function midpoint(a, b) {
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
 export default function EditorCanvas() {
   const canvasRef = useRef(null);
   const dragRef = useRef(null);
+  const pointersRef = useRef(new Map());
+  const pinchRef = useRef(null);
   const cells = useEditorStore((s) => s.cells);
   const setActiveCell = useEditorStore((s) => s.setActiveCell);
   const setTransform = useEditorStore((s) => s.setTransform);
@@ -33,28 +43,69 @@ export default function EditorCanvas() {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const index = cellIndexAt(x);
-    setActiveCell(index);
 
-    if (!cells[index].image) {
-      openFilePicker((file) => loadImageForCell(index, file));
+    if (pointersRef.current.size === 0) {
+      setActiveCell(index);
+      if (!cells[index].image) {
+        openFilePicker((file) => loadImageForCell(index, file));
+        return;
+      }
+    } else if (!cells[index].image) {
       return;
     }
 
     canvasRef.current.setPointerCapture(e.pointerId);
-    dragRef.current = {
-      index,
-      startX: x,
-      startY: y,
-      startOffsetX: cells[index].transform.offsetX,
-      startOffsetY: cells[index].transform.offsetY,
-    };
+    pointersRef.current.set(e.pointerId, { x, y, index });
+
+    if (pointersRef.current.size === 1) {
+      pinchRef.current = null;
+      dragRef.current = {
+        index,
+        startX: x,
+        startY: y,
+        startOffsetX: cells[index].transform.offsetX,
+        startOffsetY: cells[index].transform.offsetY,
+      };
+    } else if (pointersRef.current.size === 2) {
+      dragRef.current = null;
+      const pts = [...pointersRef.current.values()];
+      pinchRef.current = {
+        index: pts[0].index,
+        dist0: distance(pts[0], pts[1]),
+        mid0: midpoint(pts[0], pts[1]),
+        scale0: cells[pts[0].index].transform.scale,
+        offset0X: cells[pts[0].index].transform.offsetX,
+        offset0Y: cells[pts[0].index].transform.offsetY,
+      };
+    }
   }
 
   function handlePointerMove(e) {
-    if (!dragRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    if (pointersRef.current.has(e.pointerId)) {
+      const p = pointersRef.current.get(e.pointerId);
+      pointersRef.current.set(e.pointerId, { ...p, x, y });
+    }
+
+    if (pinchRef.current && pointersRef.current.size >= 2) {
+      const pts = [...pointersRef.current.values()];
+      const dist = distance(pts[0], pts[1]);
+      const mid = midpoint(pts[0], pts[1]);
+      const factor = dist / pinchRef.current.dist0;
+      const dx = (mid.x - pinchRef.current.mid0.x) / DISPLAY_SCALE;
+      const dy = (mid.y - pinchRef.current.mid0.y) / DISPLAY_SCALE;
+      setTransform(pinchRef.current.index, {
+        scale: Math.max(0.02, Math.min(20, pinchRef.current.scale0 * factor)),
+        offsetX: pinchRef.current.offset0X + dx,
+        offsetY: pinchRef.current.offset0Y + dy,
+      });
+      return;
+    }
+
+    if (!dragRef.current) return;
     const dx = (x - dragRef.current.startX) / DISPLAY_SCALE;
     const dy = (y - dragRef.current.startY) / DISPLAY_SCALE;
     setTransform(dragRef.current.index, {
@@ -63,8 +114,10 @@ export default function EditorCanvas() {
     });
   }
 
-  function handlePointerUp() {
+  function handlePointerUp(e) {
+    pointersRef.current.delete(e.pointerId);
     dragRef.current = null;
+    pinchRef.current = null;
   }
 
   function handleWheel(e) {
