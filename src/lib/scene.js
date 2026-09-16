@@ -37,18 +37,6 @@ function captionHeight(baseH) {
   return Math.max(34, baseH * 0.09);
 }
 
-// 「下の余白に書く」スタイルの時だけ、写真の描画領域を下に少し縮めて
-// キャプション用の余白を確保する。他のスタイルでは写真領域はフレーム通りのまま。
-function getPhotoRect(cell, cellX) {
-  const frameRect = getInnerRect(cell.frame, cellX);
-  const text = cell.text?.content?.trim();
-  if (text && cell.text.position === "margin-bottom") {
-    const reserve = captionHeight(CELL_H);
-    return { ...frameRect, h: frameRect.h - reserve };
-  }
-  return frameRect;
-}
-
 function drawPlaceholder(ctx, cellX) {
   const pad = CELL_W * 0.08;
   const cx = cellX + CELL_W / 2;
@@ -94,7 +82,7 @@ function drawCell(ctx, cellIndex, cell) {
     return;
   }
 
-  const inner = getPhotoRect(cell, cellX);
+  const inner = getInnerRect(cell.frame, cellX);
   const { scale, offsetX, offsetY, rotation } = cell.transform;
   const w = cell.image.width ?? cell.image.naturalWidth;
   const h = cell.image.height ?? cell.image.naturalHeight;
@@ -112,49 +100,41 @@ function drawCell(ctx, cellIndex, cell) {
   ctx.restore();
 }
 
+// 写真の領域(frameRect)は一切変えず、フレームの下側に既にある余白の中にだけ文字を書く。
+// フレームが「なし」など余白がほぼ無い場合は、写真とかぶらないよう何も描かない。
 function drawCaptionMargin(ctx, frameRect, text) {
-  const reserve = captionHeight(CELL_H);
-  const stripY = frameRect.y + frameRect.h - reserve;
+  const spaceY = frameRect.y + frameRect.h;
+  const spaceH = CELL_H - spaceY;
+  if (spaceH < 16) return;
 
   ctx.save();
   ctx.fillStyle = "#4a4438";
-  ctx.font = `600 ${Math.round(reserve * 0.42)}px 'M PLUS Rounded 1c', sans-serif`;
+  ctx.font = `600 ${Math.round(spaceH * 0.42)}px 'M PLUS Rounded 1c', sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, frameRect.x + frameRect.w / 2, stripY + reserve / 2, frameRect.w - 16);
+  ctx.fillText(text, frameRect.x + frameRect.w / 2, spaceY + spaceH / 2, frameRect.w - 16);
   ctx.restore();
 }
 
 function drawCaptionCorner(ctx, frameRect, text, corner) {
   const pad = 18;
   const fontSize = Math.round(CELL_W * 0.045);
-  const font = `700 ${fontSize}px 'M PLUS Rounded 1c', sans-serif`;
-  const maxTextWidth = frameRect.w - pad * 2;
 
   ctx.save();
   ctx.beginPath();
   ctx.rect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
   ctx.clip();
 
-  ctx.font = font;
-  const textWidth = Math.min(ctx.measureText(text).width, maxTextWidth);
+  ctx.font = `700 ${fontSize}px 'M PLUS Rounded 1c', sans-serif`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = corner === "br" ? "bottom" : "top";
+  const x = frameRect.x + frameRect.w - pad;
+  const y = corner === "br" ? frameRect.y + frameRect.h - pad : frameRect.y + pad;
 
-  const chipPadX = 14;
-  const chipPadY = 8;
-  const chipH = fontSize + chipPadY * 2;
-  const chipW = textWidth + chipPadX * 2;
-  const chipX = frameRect.x + frameRect.w - pad - chipW;
-  const chipY = corner === "br" ? frameRect.y + frameRect.h - pad - chipH : frameRect.y + pad;
-
-  ctx.fillStyle = "rgba(20,16,12,0.45)";
-  ctx.beginPath();
-  ctx.roundRect(chipX, chipY, chipW, chipH, chipH / 2);
-  ctx.fill();
-
+  ctx.shadowColor = "rgba(0,0,0,0.6)";
+  ctx.shadowBlur = 8;
   ctx.fillStyle = "#ffffff";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, chipX + chipW / 2, chipY + chipH / 2, maxTextWidth);
+  ctx.fillText(text, x, y, frameRect.w - pad * 2);
   ctx.restore();
 }
 
