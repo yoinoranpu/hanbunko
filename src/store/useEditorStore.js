@@ -9,7 +9,7 @@ const defaultCell = () => ({
   fileName: "",
   transform: { scale: 1, offsetX: 0, offsetY: 0, rotation: 0 },
   frame: { type: "none", thickness: 0.5 },
-  text: { content: "" },
+  text: { content: "", position: "overlay-bottom" },
 });
 
 const PERSIST_DELAY = 250;
@@ -48,7 +48,10 @@ export const useEditorStore = create((set, get) => ({
             fileName: record.fileName || "",
             transform: record.transform,
             frame: record.frame,
-            text: record.text || { content: "" },
+            text: {
+              content: record.text?.content || "",
+              position: record.text?.position || "overlay-bottom",
+            },
           };
         } catch {
           return defaultCell();
@@ -113,10 +116,10 @@ export const useEditorStore = create((set, get) => ({
     schedulePersist(get, index);
   },
 
-  setText: (index, content) => {
+  setText: (index, partial) => {
     set((state) => {
       const cells = state.cells.slice();
-      cells[index] = { ...cells[index], text: { content } };
+      cells[index] = { ...cells[index], text: { ...cells[index].text, ...partial } };
       return { cells };
     });
     schedulePersist(get, index);

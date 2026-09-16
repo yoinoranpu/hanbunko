@@ -10,6 +10,13 @@ const FRAME_OPTIONS = [
   { value: "cheki", label: "チェキ風" },
 ];
 
+const TEXT_POSITION_OPTIONS = [
+  { value: "overlay-bottom", label: "写真に重ねる" },
+  { value: "margin-bottom", label: "下の余白" },
+  { value: "corner-tr", label: "右上" },
+  { value: "corner-br", label: "右下" },
+];
+
 function todayString() {
   const d = new Date();
   const y = d.getFullYear();
@@ -38,7 +45,7 @@ export default function Toolbar() {
   function insertDate() {
     const date = todayString();
     const current = cell.text.content;
-    setText(activeCell, current ? `${current} ${date}` : date);
+    setText(activeCell, { content: current ? `${current} ${date}` : date });
   }
 
   return (
@@ -90,10 +97,22 @@ export default function Toolbar() {
       )}
 
       <div className="toolbar-row">
+        {TEXT_POSITION_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            className={cell.text.position === opt.value ? "active" : ""}
+            onClick={() => setText(activeCell, { position: opt.value })}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="toolbar-row">
         <input
           type="text"
           value={cell.text.content}
-          onChange={(e) => setText(activeCell, e.target.value)}
+          onChange={(e) => setText(activeCell, { content: e.target.value })}
           placeholder="キャプション(任意)"
           maxLength={40}
         />

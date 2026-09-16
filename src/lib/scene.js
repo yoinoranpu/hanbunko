@@ -33,6 +33,22 @@ export function coverFitScale(effSize, innerRect) {
   return Math.max(innerRect.w / effSize.w, innerRect.h / effSize.h);
 }
 
+function captionHeight(baseH) {
+  return Math.max(34, baseH * 0.09);
+}
+
+// 「下の余白に書く」スタイルの時だけ、写真の描画領域を下に少し縮めて
+// キャプション用の余白を確保する。他のスタイルでは写真領域はフレーム通りのまま。
+function getPhotoRect(cell, cellX) {
+  const frameRect = getInnerRect(cell.frame, cellX);
+  const text = cell.text?.content?.trim();
+  if (text && cell.text.position === "margin-bottom") {
+    const reserve = captionHeight(CELL_H);
+    return { ...frameRect, h: frameRect.h - reserve };
+  }
+  return frameRect;
+}
+
 function drawPlaceholder(ctx, cellX) {
   const pad = CELL_W * 0.08;
   const cx = cellX + CELL_W / 2;
@@ -78,7 +94,7 @@ function drawCell(ctx, cellIndex, cell) {
     return;
   }
 
-  const inner = getInnerRect(cell.frame, cellX);
+  const inner = getPhotoRect(cell, cellX);
   const { scale, offsetX, offsetY, rotation } = cell.transform;
   const w = cell.image.width ?? cell.image.naturalWidth;
   const h = cell.image.height ?? cell.image.naturalHeight;
@@ -96,29 +112,89 @@ function drawCell(ctx, cellIndex, cell) {
   ctx.restore();
 }
 
-function drawCaption(ctx, cellIndex, cell) {
-  const text = cell.text?.content?.trim();
-  if (!text) return;
+function drawCaptionMargin(ctx, frameRect, text) {
+  const reserve = captionHeight(CELL_H);
+  const stripY = frameRect.y + frameRect.h - reserve;
 
-  const cellX = cellIndex * CELL_W;
-  const inner = getInnerRect(cell.frame, cellX);
-  const barH = Math.max(36, inner.h * 0.09);
-  const barY = inner.y + inner.h - barH;
+  ctx.save();
+  ctx.fillStyle = "#4a4438";
+  ctx.font = `600 ${Math.round(reserve * 0.42)}px 'M PLUS Rounded 1c', sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, frameRect.x + frameRect.w / 2, stripY + reserve / 2, frameRect.w - 16);
+  ctx.restore();
+}
+
+function drawCaptionCorner(ctx, frameRect, text, corner) {
+  const pad = 18;
+  const fontSize = Math.round(CELL_W * 0.045);
+  const font = `700 ${fontSize}px 'M PLUS Rounded 1c', sans-serif`;
+  const maxTextWidth = frameRect.w - pad * 2;
 
   ctx.save();
   ctx.beginPath();
-  ctx.rect(inner.x, inner.y, inner.w, inner.h);
+  ctx.rect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
+  ctx.clip();
+
+  ctx.font = font;
+  const textWidth = Math.min(ctx.measureText(text).width, maxTextWidth);
+
+  const chipPadX = 14;
+  const chipPadY = 8;
+  const chipH = fontSize + chipPadY * 2;
+  const chipW = textWidth + chipPadX * 2;
+  const chipX = frameRect.x + frameRect.w - pad - chipW;
+  const chipY = corner === "br" ? frameRect.y + frameRect.h - pad - chipH : frameRect.y + pad;
+
+  ctx.fillStyle = "rgba(20,16,12,0.45)";
+  ctx.beginPath();
+  ctx.roundRect(chipX, chipY, chipW, chipH, chipH / 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, chipX + chipW / 2, chipY + chipH / 2, maxTextWidth);
+  ctx.restore();
+}
+
+function drawCaptionOverlay(ctx, frameRect, text) {
+  const barH = captionHeight(frameRect.h);
+  const barY = frameRect.y + frameRect.h - barH;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
   ctx.clip();
 
   ctx.fillStyle = "rgba(20,16,12,0.45)";
-  ctx.fillRect(inner.x, barY, inner.w, barH);
+  ctx.fillRect(frameRect.x, barY, frameRect.w, barH);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = `600 ${Math.round(barH * 0.5)}px 'M PLUS Rounded 1c', sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, inner.x + inner.w / 2, barY + barH / 2, inner.w - 24);
+  ctx.fillText(text, frameRect.x + frameRect.w / 2, barY + barH / 2, frameRect.w - 24);
   ctx.restore();
+}
+
+function drawCaption(ctx, cellIndex, cell) {
+  const text = cell.text?.content?.trim();
+  if (!text) return;
+
+  const cellX = cellIndex * CELL_W;
+  const frameRect = getInnerRect(cell.frame, cellX);
+  const position = cell.text.position || "overlay-bottom";
+
+  if (position === "margin-bottom") {
+    drawCaptionMargin(ctx, frameRect, text);
+  } else if (position === "corner-tr") {
+    drawCaptionCorner(ctx, frameRect, text, "tr");
+  } else if (position === "corner-br") {
+    drawCaptionCorner(ctx, frameRect, text, "br");
+  } else {
+    drawCaptionOverlay(ctx, frameRect, text);
+  }
 }
 
 function drawGuide(ctx) {
