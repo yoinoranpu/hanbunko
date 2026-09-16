@@ -14,13 +14,38 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>半分こ</h1>
-        <p className="app-sub">L判1枚から、手のひらサイズの写真を2枚。</p>
+        <div className="app-logo">
+          <span className="app-logo-mark" aria-hidden="true">
+            <i />
+            <i />
+          </span>
+          <div>
+            <h1>半分こ</h1>
+            <p className="app-sub">L判1枚から、手のひらサイズの写真を2枚。</p>
+          </div>
+        </div>
       </header>
+
+      <ol className="steps">
+        <li>
+          <span className="steps-num">1</span>写真を2枚選ぶ
+        </li>
+        <li>
+          <span className="steps-num">2</span>配置と枠を調整
+        </li>
+        <li>
+          <span className="steps-num">3</span>保存して印刷・中央でカット
+        </li>
+      </ol>
+
       <main className="app-main">
         <EditorCanvas />
         <Toolbar />
       </main>
+
+      <footer className="app-footer">
+        <p>写真はすべて端末内で処理され、サーバーには送信されません。</p>
+      </footer>
     </div>
   );
 }

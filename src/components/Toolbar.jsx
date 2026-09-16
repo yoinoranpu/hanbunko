@@ -2,6 +2,7 @@ import { useEditorStore } from "../store/useEditorStore";
 import { openFilePicker } from "../lib/filePicker";
 import { exportJpeg } from "../lib/exportImage";
 import { exportPdf } from "../lib/exportPdf";
+import { PhotoIcon, DocumentIcon } from "./icons";
 
 const FRAME_OPTIONS = [
   { value: "none", label: "フレームなし" },
@@ -27,39 +28,47 @@ export default function Toolbar() {
 
   return (
     <div className="toolbar">
-      <div className="toolbar-row">
-        <span className="toolbar-label">選択中: {activeCell === 0 ? "左" : "右"}の写真</span>
-        <button onClick={() => openFilePicker((file) => loadImageForCell(activeCell, file))}>
-          画像を{cell.image ? "変更" : "選択"}
-        </button>
-      </div>
-
-      <div className="toolbar-row">
-        <button onClick={() => zoom(1.1)} disabled={!cell.image}>
-          ＋ 拡大
-        </button>
-        <button onClick={() => zoom(0.9)} disabled={!cell.image}>
-          － 縮小
-        </button>
-        <button onClick={() => rotateCell(activeCell)} disabled={!cell.image}>
-          ⟳ 回転
-        </button>
-      </div>
-
-      <div className="toolbar-row">
-        {FRAME_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            className={cell.frame.type === opt.value ? "active" : ""}
-            onClick={() => setFrame(activeCell, { type: opt.value })}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
-      {cell.frame.type !== "none" && (
+      <div className="toolbar-section">
+        <span className="toolbar-section-title">写真</span>
         <div className="toolbar-row">
+          <span className="selected-badge">選択中: {activeCell === 0 ? "左" : "右"}の写真</span>
+          <button onClick={() => openFilePicker((file) => loadImageForCell(activeCell, file))}>
+            <PhotoIcon />
+            画像を{cell.image ? "変更" : "選択"}
+          </button>
+        </div>
+      </div>
+
+      <div className="toolbar-section">
+        <span className="toolbar-section-title">配置</span>
+        <div className="toolbar-row">
+          <button onClick={() => zoom(1.1)} disabled={!cell.image}>
+            ＋ 拡大
+          </button>
+          <button onClick={() => zoom(0.9)} disabled={!cell.image}>
+            － 縮小
+          </button>
+          <button onClick={() => rotateCell(activeCell)} disabled={!cell.image}>
+            ⟳ 回転
+          </button>
+        </div>
+      </div>
+
+      <div className="toolbar-section">
+        <span className="toolbar-section-title">フレーム</span>
+        <div className="toolbar-row">
+          {FRAME_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              className={cell.frame.type === opt.value ? "active" : ""}
+              onClick={() => setFrame(activeCell, { type: opt.value })}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {cell.frame.type !== "none" && (
           <label className="range-label">
             太さ
             <input
@@ -71,18 +80,27 @@ export default function Toolbar() {
               onChange={(e) => setFrame(activeCell, { thickness: Number(e.target.value) })}
             />
           </label>
-        </div>
-      )}
+        )}
 
-      <div className="toolbar-row">
-        <button onClick={() => applyFrameToBoth(activeCell)}>このフレームを両方に適用</button>
+        <div className="toolbar-row">
+          <button className="ghost" onClick={() => applyFrameToBoth(activeCell)}>
+            このフレームを両方に適用
+          </button>
+        </div>
       </div>
 
-      <div className="toolbar-row export-row">
-        <button className="primary" onClick={() => exportPdf(cells)}>
-          PDFを保存
-        </button>
-        <button onClick={() => exportJpeg(cells)}>JPEGを保存</button>
+      <div className="toolbar-section">
+        <span className="toolbar-section-title">書き出し</span>
+        <div className="toolbar-row export-row">
+          <button className="primary" onClick={() => exportPdf(cells)}>
+            <DocumentIcon />
+            PDFを保存
+          </button>
+          <button onClick={() => exportJpeg(cells)}>
+            <PhotoIcon />
+            JPEGを保存
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -33,6 +33,40 @@ export function coverFitScale(effSize, innerRect) {
   return Math.max(innerRect.w / effSize.w, innerRect.h / effSize.h);
 }
 
+function drawPlaceholder(ctx, cellX) {
+  const pad = CELL_W * 0.08;
+  const cx = cellX + CELL_W / 2;
+  const cy = CELL_H / 2;
+
+  ctx.save();
+  ctx.strokeStyle = "#e6ddd0";
+  ctx.lineWidth = 3;
+  ctx.setLineDash([16, 12]);
+  ctx.beginPath();
+  ctx.roundRect(cellX + pad, pad, CELL_W - pad * 2, CELL_H - pad * 2, 28);
+  ctx.stroke();
+
+  ctx.setLineDash([]);
+  ctx.strokeStyle = "#c7bcac";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  const r = 20;
+  const plusY = cy - 20;
+  ctx.beginPath();
+  ctx.moveTo(cx - r, plusY);
+  ctx.lineTo(cx + r, plusY);
+  ctx.moveTo(cx, plusY - r);
+  ctx.lineTo(cx, plusY + r);
+  ctx.stroke();
+
+  ctx.fillStyle = "#9c9284";
+  ctx.font = "600 30px 'M PLUS Rounded 1c', sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("写真を選ぶ", cx, cy + 40);
+  ctx.restore();
+}
+
 function drawCell(ctx, cellIndex, cell) {
   const cellX = cellIndex * CELL_W;
 
@@ -40,11 +74,7 @@ function drawCell(ctx, cellIndex, cell) {
   ctx.fillRect(cellX, 0, CELL_W, CELL_H);
 
   if (!cell.image) {
-    ctx.fillStyle = "#c9c9d6";
-    ctx.font = "28px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("写真を選択", cellX + CELL_W / 2, CELL_H / 2);
+    drawPlaceholder(ctx, cellX);
     return;
   }
 
@@ -83,7 +113,7 @@ function drawGuide(ctx) {
 
   // カットのブレを見込んだ安全マージン(目安、片側約3mm)
   const margin = 35;
-  ctx.strokeStyle = "rgba(255,90,90,0.55)";
+  ctx.strokeStyle = "rgba(226,102,92,0.6)";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(CELL_W - margin, 0);
