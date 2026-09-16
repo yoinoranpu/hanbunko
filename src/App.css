@@ -159,6 +159,23 @@
   accent-color: var(--color-primary);
 }
 
+.toolbar input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 12.5px;
+  font-family: inherit;
+}
+
+.toolbar input[type="text"]:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
 .side-badge {
   flex: none;
   display: grid;

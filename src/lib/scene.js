@@ -96,6 +96,31 @@ function drawCell(ctx, cellIndex, cell) {
   ctx.restore();
 }
 
+function drawCaption(ctx, cellIndex, cell) {
+  const text = cell.text?.content?.trim();
+  if (!text) return;
+
+  const cellX = cellIndex * CELL_W;
+  const inner = getInnerRect(cell.frame, cellX);
+  const barH = Math.max(36, inner.h * 0.09);
+  const barY = inner.y + inner.h - barH;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(inner.x, inner.y, inner.w, inner.h);
+  ctx.clip();
+
+  ctx.fillStyle = "rgba(20,16,12,0.45)";
+  ctx.fillRect(inner.x, barY, inner.w, barH);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `600 ${Math.round(barH * 0.5)}px 'M PLUS Rounded 1c', sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, inner.x + inner.w / 2, barY + barH / 2, inner.w - 24);
+  ctx.restore();
+}
+
 function drawGuide(ctx) {
   const w = CELL_W * 2;
   const h = CELL_H;
@@ -134,5 +159,7 @@ export function drawScene(ctx, cells, { withGuide = false } = {}) {
   ctx.clearRect(0, 0, CELL_W * 2, CELL_H);
   drawCell(ctx, 0, cells[0]);
   drawCell(ctx, 1, cells[1]);
+  drawCaption(ctx, 0, cells[0]);
+  drawCaption(ctx, 1, cells[1]);
   if (withGuide) drawGuide(ctx);
 }
