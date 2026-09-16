@@ -4,9 +4,11 @@ import { CANVAS_W, CANVAS_H } from "../lib/constants";
 import { drawScene } from "../lib/scene";
 import { openFilePicker } from "../lib/filePicker";
 
-const DISPLAY_SCALE = 0.4;
-const DISPLAY_W = Math.round(CANVAS_W * DISPLAY_SCALE);
-const DISPLAY_H = Math.round(CANVAS_H * DISPLAY_SCALE);
+// canvasの内部解像度(描画の鮮明さ用)。表示サイズはCSS側(aspect-ratio+max-width/height)で
+// レイアウトに応じて自由に伸縮するため、ここは固定値でよい。
+const BACKING_SCALE = 0.5;
+const BACKING_W = Math.round(CANVAS_W * BACKING_SCALE);
+const BACKING_H = Math.round(CANVAS_H * BACKING_SCALE);
 
 function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -29,20 +31,23 @@ export default function EditorCanvas() {
   useEffect(() => {
     const ctx = canvasRef.current.getContext("2d");
     ctx.save();
-    ctx.scale(DISPLAY_SCALE, DISPLAY_SCALE);
+    ctx.scale(BACKING_SCALE, BACKING_SCALE);
     drawScene(ctx, cells, { withGuide: true });
     ctx.restore();
   }, [cells]);
 
-  function cellIndexAt(x) {
-    return x < DISPLAY_W / 2 ? 0 : 1;
+  function pointFromEvent(e, rect) {
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function cellIndexAt(x, rect) {
+    return x < rect.width / 2 ? 0 : 1;
   }
 
   function handlePointerDown(e) {
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const index = cellIndexAt(x);
+    const { x, y } = pointFromEvent(e, rect);
+    const index = cellIndexAt(x, rect);
 
     if (pointersRef.current.size === 0) {
       setActiveCell(index);
@@ -82,8 +87,10 @@ export default function EditorCanvas() {
 
   function handlePointerMove(e) {
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = pointFromEvent(e, rect);
+    // 表示サイズ(rect)がレイアウトで伸縮しても正しく変換できるよう、
+    // world座標(=CANVAS_W×CANVAS_H基準)への換算は毎回rectから動的に算出する
+    const worldPerPx = CANVAS_W / rect.width;
 
     if (pointersRef.current.has(e.pointerId)) {
       const p = pointersRef.current.get(e.pointerId);
@@ -95,8 +102,8 @@ export default function EditorCanvas() {
       const dist = distance(pts[0], pts[1]);
       const mid = midpoint(pts[0], pts[1]);
       const factor = dist / pinchRef.current.dist0;
-      const dx = (mid.x - pinchRef.current.mid0.x) / DISPLAY_SCALE;
-      const dy = (mid.y - pinchRef.current.mid0.y) / DISPLAY_SCALE;
+      const dx = (mid.x - pinchRef.current.mid0.x) * worldPerPx;
+      const dy = (mid.y - pinchRef.current.mid0.y) * worldPerPx;
       setTransform(pinchRef.current.index, {
         scale: Math.max(0.02, Math.min(20, pinchRef.current.scale0 * factor)),
         offsetX: pinchRef.current.offset0X + dx,
@@ -106,8 +113,8 @@ export default function EditorCanvas() {
     }
 
     if (!dragRef.current) return;
-    const dx = (x - dragRef.current.startX) / DISPLAY_SCALE;
-    const dy = (y - dragRef.current.startY) / DISPLAY_SCALE;
+    const dx = (x - dragRef.current.startX) * worldPerPx;
+    const dy = (y - dragRef.current.startY) * worldPerPx;
     setTransform(dragRef.current.index, {
       offsetX: dragRef.current.startOffsetX + dx,
       offsetY: dragRef.current.startOffsetY + dy,
@@ -123,8 +130,8 @@ export default function EditorCanvas() {
   function handleWheel(e) {
     e.preventDefault();
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const index = cellIndexAt(x);
+    const { x } = pointFromEvent(e, rect);
+    const index = cellIndexAt(x, rect);
     if (!cells[index].image) return;
     const factor = e.deltaY > 0 ? 0.95 : 1.05;
     const current = cells[index].transform.scale;
@@ -132,16 +139,18 @@ export default function EditorCanvas() {
   }
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={DISPLAY_W}
-      height={DISPLAY_H}
-      className="editor-canvas"
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onWheel={handleWheel}
-    />
+    <div className="canvas-wrap">
+      <canvas
+        ref={canvasRef}
+        width={BACKING_W}
+        height={BACKING_H}
+        className="editor-canvas"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onWheel={handleWheel}
+      />
+    </div>
   );
 }
