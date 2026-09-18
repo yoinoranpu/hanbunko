@@ -9,7 +9,7 @@ const defaultCell = () => ({
   fileName: "",
   transform: { scale: 1, offsetX: 0, offsetY: 0, rotation: 0 },
   frame: { type: "none", thickness: 0.5 },
-  text: { content: "", position: "overlay-bottom" },
+  text: { content: "", position: "overlay-bottom", fontScale: 1 },
 });
 
 const PERSIST_DELAY = 250;
@@ -51,6 +51,7 @@ export const useEditorStore = create((set, get) => ({
             text: {
               content: record.text?.content || "",
               position: record.text?.position || "overlay-bottom",
+              fontScale: record.text?.fontScale ?? 1,
             },
           };
         } catch {

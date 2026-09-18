@@ -121,6 +121,20 @@ export default function Toolbar() {
         </button>
       </div>
 
+      {cell.text.content && (
+        <label className="range-label">
+          文字サイズ
+          <input
+            type="range"
+            min="0.6"
+            max="1.8"
+            step="0.05"
+            value={cell.text.fontScale ?? 1}
+            onChange={(e) => setText(activeCell, { fontScale: Number(e.target.value) })}
+          />
+        </label>
+      )}
+
       <div className="toolbar-row export-row">
         <button className="primary" onClick={() => exportPdf(cells)}>
           <DocumentIcon />

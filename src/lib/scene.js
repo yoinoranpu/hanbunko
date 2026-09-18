@@ -102,23 +102,23 @@ function drawCell(ctx, cellIndex, cell) {
 
 // 写真の領域(frameRect)は一切変えず、フレームの下側に既にある余白の中にだけ文字を書く。
 // フレームが「なし」など余白がほぼ無い場合は、写真とかぶらないよう何も描かない。
-function drawCaptionMargin(ctx, frameRect, text) {
+function drawCaptionMargin(ctx, frameRect, text, fontScale) {
   const spaceY = frameRect.y + frameRect.h;
   const spaceH = CELL_H - spaceY;
   if (spaceH < 16) return;
 
   ctx.save();
   ctx.fillStyle = "#4a4438";
-  ctx.font = `600 ${Math.round(spaceH * 0.42)}px 'M PLUS Rounded 1c', sans-serif`;
+  ctx.font = `600 ${Math.round(spaceH * 0.42 * fontScale)}px 'M PLUS Rounded 1c', sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(text, frameRect.x + frameRect.w / 2, spaceY + spaceH / 2, frameRect.w - 16);
   ctx.restore();
 }
 
-function drawCaptionCorner(ctx, frameRect, text, corner) {
+function drawCaptionCorner(ctx, frameRect, text, corner, fontScale) {
   const pad = 18;
-  const fontSize = Math.round(CELL_W * 0.045);
+  const fontSize = Math.round(CELL_W * 0.045 * fontScale);
 
   ctx.save();
   ctx.beginPath();
@@ -138,8 +138,8 @@ function drawCaptionCorner(ctx, frameRect, text, corner) {
   ctx.restore();
 }
 
-function drawCaptionOverlay(ctx, frameRect, text) {
-  const barH = captionHeight(frameRect.h);
+function drawCaptionOverlay(ctx, frameRect, text, fontScale) {
+  const barH = captionHeight(frameRect.h) * fontScale;
   const barY = frameRect.y + frameRect.h - barH;
 
   ctx.save();
@@ -165,15 +165,16 @@ function drawCaption(ctx, cellIndex, cell) {
   const cellX = cellIndex * CELL_W;
   const frameRect = getInnerRect(cell.frame, cellX);
   const position = cell.text.position || "overlay-bottom";
+  const fontScale = cell.text.fontScale ?? 1;
 
   if (position === "margin-bottom") {
-    drawCaptionMargin(ctx, frameRect, text);
+    drawCaptionMargin(ctx, frameRect, text, fontScale);
   } else if (position === "corner-tr") {
-    drawCaptionCorner(ctx, frameRect, text, "tr");
+    drawCaptionCorner(ctx, frameRect, text, "tr", fontScale);
   } else if (position === "corner-br") {
-    drawCaptionCorner(ctx, frameRect, text, "br");
+    drawCaptionCorner(ctx, frameRect, text, "br", fontScale);
   } else {
-    drawCaptionOverlay(ctx, frameRect, text);
+    drawCaptionOverlay(ctx, frameRect, text, fontScale);
   }
 }
 
