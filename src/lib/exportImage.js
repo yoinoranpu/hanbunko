@@ -38,6 +38,7 @@ export async function exportJpeg(cells, filename = "hanbunko.jpg") {
   drawScene(ctx, cells, { withGuide: false });
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.95));
+  if (!blob) throw new Error("JPEGを作成できませんでした");
   const patched = embedJpegDpi(await blob.arrayBuffer(), DPI);
   downloadBlob(new Blob([patched], { type: "image/jpeg" }), filename);
 }

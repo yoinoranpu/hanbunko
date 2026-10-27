@@ -45,6 +45,8 @@ export default function EditorCanvas() {
   }
 
   function handlePointerDown(e) {
+    const state = useEditorStore.getState();
+    if (!state.hydrated || state.deleting.some(Boolean)) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const { x, y } = pointFromEvent(e, rect);
     const index = cellIndexAt(x, rect);
